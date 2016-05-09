@@ -1,0 +1,212 @@
+<?php 
+/* Plugin Name: Custom Color Projects
+ * Description: Lists of Color Projects 
+ * Author: Evan Grob
+ * URL: 
+ * Version: 1.0.1
+ * Date 3/28/2016
+ */
+ 
+
+ function register_color_projects() {
+	 // register_color_projects
+	 register_post_type( 'color_project', array(
+			'labels'	=>	array( 
+				'name' => __( 'Color Projects' ),
+				'singular_name' => __( 'Color Project' ),
+				'public' => true,
+        'show_ui' => true,
+        
+        'hierarchical' => false,
+        'has_archive' => true,
+        'rewrite' => true,
+        'supports' => array('title', 'editor', 'thumbnail'),
+				'edit_item' => __( 'Edit Color Projects' ),
+				'view_item' => __( 'View Color Projects' )
+			),
+			'description'			=>	__( 'Used to create and edit Color Projects.' ),
+			'public'				=>	true,
+			 'post_status' => 'published',
+			'show_ui' => true, 
+			'menu_position'			=>	3,
+			'menu_icon'				=>	'dashicons-art',
+			'capability_type'		=>	'post',
+			'supports'				=>	array( 'title', 'thumbnail' ),
+			'register_meta_box_cb'	=>	'color_project_panel'
+			
+	 	)
+		
+	 );	
+	
+	
+	 
+ }
+ add_action( 'init', 'register_color_projects' ); 
+ 
+function color_project_enqueue_scripts() {
+	wp_enqueue_media();
+	
+	wp_enqueue_style( 'ifdc-story', get_template_directory_uri() . '/css/ifdc-admin.css' );
+	wp_enqueue_script( 'ifdc-story', get_template_directory_uri() . '/js/ifdc-admin.js', array( 'jquery' ), '1.0.0', true );
+	wp_enqueue_script( 'ifdc-story', get_template_directory_uri() . '/js/ifdc.js', array( 'jquery' ), '1.0.0', true );
+	wp_enqueue_script( 'ifdc-story', 'http://www.sandbox.webstratdevelop.com/wp-content/plugins/20-20/js/jquery.event.move.js', array( 'jquery' ), '1.0.0', true );
+	wp_enqueue_script( 'ifdc-story', 'http://www.sandbox.webstratdevelop.com/wp-content/plugins/20-20/js/jquery.twentytwenty.js', array( 'jquery' ), '1.0.0', true );
+}
+add_action( 'admin_enqueue_scripts', 'color_project_enqueue_scripts' );
+
+ function color_project_panel( $post ) {
+	add_meta_box( 'color_project', __( 'Color Projects' ), 'color_project_meta_callback', 'color_project' );
+}
+ 
+ function color_project_meta_callback( $post ) {
+	 // a nonce field so we can check for it later
+	 wp_nonce_field( 'ifdc_save_story', 'ifdc_meta_box_nonce' );
+	 
+	 
+	 $subtitle = get_post_meta( $post->ID, '_ifdc_story_subtitle', true );
+	echo '<p>';
+	echo '<label for="ifdc_story_subtitle">Subtitle</label> ';
+	echo '<textarea name="ifdc_story_subtitle" rows="1" cols="40" id="ifdc_story_subtitle">' . $subtitle . '</textarea>';
+	echo '</p>';
+	 
+	 $video = get_post_meta( $post->ID, '_ifdc_story_video', true );
+	 echo '<p><label for="ifdc_story_video">Vimeo Video ID</label> <input type="text" name="ifdc_story_video" id="ifdc_story_video" value="' . $video . '" /></p>';	  	 
+	 echo '<div class="ifdc-sections-toolbar"><input id="ifdc_credits_add_color" type="button" class="button button-primary button-large" value="Add Credit"/></div>';	 
+	 echo '<div id="ifdc_credits">';	 
+	 $credits = get_post_meta( $post->ID, '_ifdc_story_credits', true );
+	 if( !empty( $credits ) )
+	 for( $i=0; $i < sizeof( $credits ); $i++ ) {
+		echo '<p>';
+		echo '<label for="ifdc_credit_label_' . $i . '">Label</label> ';
+		echo '<input type="text" name="ifdc_credit_label_' . $i . '" id="ifdc_credit_label_'. $i . '" value="' . $credits[$i]['label'] . '" /> ';
+		echo '<label for="ifdc_credit_text_' . $i . '">Text</label> ';
+		echo '<input type="text" name="ifdc_credit_text_' . $i . '" id="ifdc_credit_text_'. $i . '" value="' . $credits[$i]['text'] . '" />';
+		echo ' <a href="#" class="ifdc-remove-section_color">&times; Remove Section</a>';
+		echo '</p>';
+	 }
+	 
+	 echo '</div>';
+	
+ 
+
+
+	 // get the existing values
+	 $sections = get_post_meta( $post->ID, '_ifdc_story_sections', true );
+	 
+	 // the default html
+	$ta = '<div class="ifdc-content-field"><textarea name="ifdc_{id}_content[]">{value}</textarea></div>';
+	$img = '<div class="ifdc-content-field ifdc-image-wrapper">{thumbnail}<input name="ifdc_{id}_content[]" type="hidden" value="{value}"/> <input type="button" class="ifdc-image-button button button-large" value="Select Image" /></div>';
+	// a missing image
+	$ximg = '<img src="" width="150" height="150" class="attachment-thumbnail" alt="No image selected" />';
+	
+	echo '<div class="ifdc-sections-toolbar"><input id="ifdc_sections_add_color" type="button" class="button button-primary button-large" value="Add Section"/></div>';
+		echo '<div id="ifdc_story"></div>';
+		
+	// loop through the sections
+	if( !empty( $sections ) )
+	for( $i = 0; $i < sizeof( $sections ); $i++ ) {
+		
+		// get the section data
+		$data = $sections[$i];
+				
+		echo '<div id="ifdc_section_' . $i . '" class="ifdc-section clearfix" data-section="'. $i . '">';
+		
+		echo '<p><label for="ifdc_section_type_' . $i . '">Type</label> <select name="ifdc_section_type_' . $i . '">';
+		echo '<option value="text" '. ($data['type']=='text' ? 'selected="selected"' : '') . '>Text</option>';
+		echo '<option value="image-1" ' . ($data['type']=='image-2' ? 'selected="selected"' : '' ) . '>Before/After Slider</option>';
+		echo '<option value="image-2" ' . ($data['type']=='image-2' ? 'selected="selected"' : '' ) . '>Images (2 columns)</option>';
+		echo '<option value="image-3" ' . ($data['type']=='image-3' ? 'selected="selected"' : '' ) . '>Images (3 columns)</option></select>';
+		echo ' <a href="#" class="ifdc-remove-section_color">&times; Remove Section</a>';
+		echo '</p>';
+				
+		// loop through the content
+		for( $c = 0; $c < sizeof( $data['content'] ); $c++ ) {	
+						
+			if( $data[ 'type' ] == 'text' ) {
+				
+				echo str_replace( '{value}', $data['content'][$c], str_replace( '{id}', $i, $ta ) );
+				
+			} else {	
+				
+				$timg = wp_get_attachment_image( $data['content'][$c], 'thumbnail' );
+				if( empty( $timg ) ) $timg = $ximg;
+				
+				echo str_replace( '{thumbnail}', $timg,
+					str_replace( '{value}', $data['content'][$c],
+					str_replace( '{id}', $i, $img ) ) );
+				
+			}
+		}
+		
+		while( $c < 2 ) {
+			// 1 is 2; so 2 columns is done
+			if( $c>1 && ( $data['type'] == 'image-2' || $data['type'] == 'text' ) ) break;
+						
+			if( $data[ 'type' ] == 'text' ) {
+				
+				echo str_replace( '{value}', '', str_replace( '{id}', $i, $ta ) );
+				
+			} else {
+				
+				echo str_replace( '{thumbnail}', $ximg,
+					str_replace( '{value}', '',
+					str_replace( '{id}', $i, $img ) ) );
+				
+			}
+			
+			$c++;
+		}
+		
+		echo '</div>';
+	}
+}
+function color_project_save_post( $post_id ) {
+	 
+	 // verify this came from us
+	 if( !isset( $_POST['ifdc_meta_box_nonce'] ) ) return;
+	 
+	 // verify the nonce is valid
+	 if( !wp_verify_nonce( $_POST['ifdc_meta_box_nonce'], 'ifdc_save_story' ) ) return;
+	 
+	 // if this is an autosave, our form has not been submitted, so we don't want to do anything.
+	 if( defined( 'DOING_AUTOSAAVE' ) && DOING_AUTOSAVE ) return;
+	 
+	 // make sure the user has permissions
+	 if( isset( $_POST['post_type'] ) && 'story' == $_POST['post_type'] ) {
+		 if( !current_user_can( 'edit_page', $post_id ) ) return;
+	 }
+	 
+	 $sections = array();
+	 $credits = array();
+	 
+	 // get the existing and new identifiers
+	 foreach($_POST as $key=>$val) {
+		 if( strpos( $key, '_new_section_type_' ) ) {
+			 $id = str_replace( 'ifdc_new_section_type_', '', $key );
+			 $sections[] = array(
+			 	'type' => $_POST["ifdc_new_section_type_{$id}"],
+				'content' => $_POST["ifdc_new_{$id}_content"]
+			 );
+		 } elseif( strpos( $key, '_section_type_' ) ) {
+			 $id = str_replace( 'ifdc_section_type_', '', $key );
+			 $sections[] = array(
+			 	'type' => $_POST["ifdc_section_type_{$id}"],
+				'content' => $_POST["ifdc_{$id}_content"]
+			 );
+		 } elseif( strpos( $key, '_credit_label_' ) ) {
+			 $id = str_replace( '_label', '_text', $key );
+			 $credits[] = array(
+			 	'label' => $_POST[ $key ],
+				'text' => $_POST[ $id ]
+			 );
+		 }
+	 }
+	 
+	 update_post_meta( $post_id, '_ifdc_story_subtitle', sanitize_text_field( $_POST['ifdc_story_subtitle'] ) );
+	 update_post_meta( $post_id, '_ifdc_story_video', sanitize_text_field( $_POST['ifdc_story_video'] ) );
+	 update_post_meta( $post_id, '_ifdc_story_credits', $credits );
+	 update_post_meta( $post_id, '_ifdc_story_sections', $sections );	 
+ }
+ add_action( 'save_post', 'color_project_save_post' );
+ 
+ ?>

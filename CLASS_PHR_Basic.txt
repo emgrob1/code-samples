@@ -1,0 +1,825 @@
+Class.PHRbasic.php
+<?php
+////////////////////////////////////////////////////////////////////////////////////////////
+// Script: /www/nalc/classes/class.PHRbasic.php
+//
+// Purpose:  Houses functions for the Basic Summary Information page of the PHR
+// functions: Update, Display, Edit, Save
+//
+// Author: Evan Grob 05/03/2012 
+//
+// Modifcations:  4/10/2014 Redesigned the class to not include the function of Update, Display, and Edit
+// When a field has an incorrect data type entered then the user is notified and shown where to fix the error. 
+// There are two error pages, addEdit.php and addEdit2.php
+// addEdit.php appears when there is an error at the Update page, addEdit2.php appears when there are errors on the edit page.
+// The functions will be give separate pages only the following functions are available in this class:
+//  __construct()-sets the initial parameters, arrays, variable values
+//  check()-Checks to see if there are any data in the db for the user.  If not then the update page is prompted, if yes then the display is prompted.
+//  getbasicsummaryinfo()-collects any data that has been saved by the user for the display page, editpage, and error edit pages 
+//  getcoreinfo()-collect data from the member file, such as mid#, dob, email
+//  save()-saves the data from the update page only.
+//  savebasic()-save the data from the display, edit and error pages
+//  returnResults()-The values from the getbasicsummaryinfo()are stored in this array.  Used to populate Display, Edit, and error pages
+//  returnthis()-The values from the getcoreinfo()are stored in this array.  Used to populate Update, Display, Edit, and error pages
+//
+//
+//
+//
+////////////////////////////////////////////////////////////////////////////////////////////
+class BasicSummary1{
+	private $mid;
+	private $address1;
+	private $city;
+	private $state;
+	private $zip;
+	private $phone;
+	private $email;
+	private $_results;
+	private $_coreresults;
+	private $errors;
+	private $saveadd;
+	private $tempEZip;
+
+	public function __construct(){
+		$this->saveadd=null;
+		$this->errors = array();
+		$this->mid = $_POST['mid'];
+		$this->namecode = $_SESSION['searchNmc'];
+		$this->address = null;
+		$this->address2 = null;
+		$this->city = null;
+		$this->state = null;
+		$this->zip = null;
+		$this->zip4 = null;
+		$this->pob = null;
+		$this->gender =null;
+		$this->race =null;
+		$this->hair = null;
+		$this->eye = null;
+		$this->height = null;
+		$this->weight = null;
+		$this->bloodtype = null;
+		$this->maritalstatus = null;
+		$this->numberofchildren = null;
+		$this->livingwill = null;
+		$this->phone = null;
+		$this->phone2 = null;
+		$this->cellphone = null;
+		$this->workphone = null;
+		$this->tempEZip = null;
+		$this->email = $_SESSION['email'];
+		$this->gotobspindx = null;
+		$this->mid = $_POST['mid'];
+		$this->namecode = $_SESSION['nmc'];
+//If post values are blank the intger will be populated with 0 and strings will be blank
+		if ($_POST['address']==''){
+			$this->address ='';
+		}else {
+			$this->address = substr($_POST['address'],0,60);
+		}
+		if ($_POST['addressline2']==''){
+			$this->address2 ='';
+		}else {
+			$this->address2 = substr($_POST['addressline2'],0,60);
+		}
+
+		if ($_POST['city']==''){
+			$this->city = '';
+		}else {
+			$this->city = substr($_POST['city'],0,25);
+		}
+		if ($_POST['state']==''){
+			$this->state = '';
+		}else {
+			$this->state = $_POST['state'];
+		}
+		if ($_POST['zip']==''){
+			$this->zip = '0';
+			$_POST['zip'] = '0';
+		}else {
+			$zip = $_POST['zip'];
+			
+			$this->zip = str_pad($zip,5,"0",STR_PAD_LEFT);
+		}
+		if ($_POST['zip4']==''){
+			$this->zip4 = '0';
+			$_POST['zip4']='0';
+		}else {
+			$zerozip4 = $_POST['zip4'];
+			
+			$truzip4 = str_pad($zerozip4,4,"0",STR_PAD_LEFT);
+
+			$this->zip4 = $truzip4;
+		}
+		if ($_POST['birthplace']==''){
+			$this->pob = '';
+		}else {
+			$this->pob = substr($_POST['birthplace'],0,60);
+		}
+
+		if ($_POST['gender']==''){
+			$this->gender = '';
+		}else {
+			$this->gender =  ucwords(strtolower($_POST['gender']));
+		}
+
+		if ($_POST['race']==''){
+			$this->race = '';
+		}else {
+			$this->race = $_POST['race'];
+		}
+		if ($_POST['haircolor']==''){
+			$this->hair = '';
+		}else {
+			$this->hair = substr($_POST['haircolor'],0,30);
+		}
+		if ($_POST['eyecolor']==''){
+			$this->eye = '';
+		}else {
+			$this->eye = substr($_POST['eyecolor'],0,30);
+		}
+		
+		if ($_POST['heighti']==''){
+			$_POST['heighti']='0';
+			$this->heighti = '0';
+			$this->heighti = '0';
+				
+		}else {
+		
+		$this->heighti=$_POST['heighti'];
+		}
+		if ($_POST['height']==''&&$_POST['heighti']>0){
+			$_POST['height']='0';
+			$this->height = '0';
+			$feet=$_POST['height'];
+			$inches=$_POST['heighti'];
+			
+			$this->height = $_POST['height'].'ft. '.$_POST['heighti'].'in.';
+			
+			$this->heighti = ($feet*12)+$inches;
+			
+		}else {
+
+			$feet=$_POST['height'];
+			$inches=$_POST['heighti'];
+		
+			$this->height = $_POST['height'].'ft. '.$_POST['heighti'].'in.';
+
+			$this->heighti = ($feet*12)+$inches;
+		}
+	
+
+		if ($_POST['weight']==''){
+			$this->weight = '0';
+			$_POST['weight']='0';
+		}else {
+			$this->weight = $_POST['weight'].' lbs.';
+		}
+
+		if ($_POST['bloodtype']==''){
+			$this->bloodtype = '';
+		}else {
+			$this->bloodtype = $_POST['bloodtype'];
+		}
+		if ($_POST['maritalstatus']==''){
+			$this->maritalstatus = '';
+		}else {
+			$this->maritalstatus = ucwords(strtolower($_POST['maritalstatus']));
+		}
+		if ($_POST['numberofchildren']==''){
+			$this->numberofchildren = 0;
+		}else {
+			$this->numberofchildren = $_POST['numberofchildren'];
+		}
+		if ($_POST['livingwill']==''){
+			$this->livingwill = '';
+		}else {
+			$this->livingwill = $_POST['livingwill'];
+		}
+
+//Phone numbers are set up in 3 different sections: (1)areacode, (2)prefix, and (3)location (eg (111) 222-3333)
+		$phonenumber = trim($_POST['areacode'].$_POST['prefix'].$_POST['location']);
+	
+		if ($phonenumber==''){
+			$this->phone = '0';
+			$_POST['areacode']='0';
+			$_POST['prefix']='0';
+			$_POST['location']='0';
+		}else {
+			
+			$this->phone = ($_POST['areacode'].$_POST['prefix'].$_POST['location']);
+			
+	}
+		$phonenumber2 = trim($_POST['areacode2'].$_POST['prefix2'].$_POST['location2'].$_POST['ext2']);
+		if ($phonenumber2==''){
+			$this->phone2 = '0';
+			$_POST['areacode2']='0';
+			$_POST['prefix2']='0';
+			$_POST['location2']='0';
+			$_POST['ext2']='0';
+		}else {
+			$this->phone2 = ($_POST['areacode2'].$_POST['prefix2'].$_POST['location2'].$_POST['ext2']);
+		}
+		$cellphonenumber = trim($_POST['areacodec'].$_POST['prefixc'].$_POST['locationc']);
+		
+		if ($cellphonenumber==''){
+			$this->cellphone = '0';
+			$_POST['areacodec']='0';
+			$_POST['prefixc']='0';
+			$_POST['locationc']='0';
+		}else {
+			$this->cellphone = ($_POST['areacodec'].$_POST['prefixc'].$_POST['locationc']);
+		}
+		$workphonenumber = trim($_POST['areacodew'].$_POST['prefixw'].$_POST['locationw'].$_POST['extw']);
+		if ($workphonenumber==''){
+			$this->workphone = '0';
+
+			$_POST['areacodew']='0';
+			$_POST['prefixw']='0';
+			$_POST['locationw']='0';
+			$_POST['extw']='0';
+		}else {
+			$this->workphone = ($_POST['areacodew'].$_POST['prefixw'].$_POST['locationw'].$_POST['extw']);
+		}
+
+		$this->email = $_POST['email'];
+		$this->_results = array();
+		$this->_coreresults = array();
+		//construct addcontacts variables
+	
+	}
+	
+	//check if there is any data populating the record if not only the update page will show, if yes, then the display page will show.
+	public function check(){
+		
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql = ("SELECT * FROM PHRINFO WHERE BIMID = ? AND BINMCD=?");
+		$mid =$_SESSION['nmid'];
+		$ncd = $_SESSION['searchNmc'];;
+		$stmt = odbc_prepare( $conn, $sql )	or die("User MID Prepare failed! ". odbc_stmt_errormsg());
+		if(odbc_execute($stmt,array($mid,$ncd))){
+			$row = odbc_fetch_array ( $stmt );
+		}
+		odbc_close ( $conn );
+		return $row? 1:0;
+	}
+	
+	//gathers data to populate the display page or the edit page with data already populated
+	public function getbasicsummaryinfo(){
+		
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql = ("SELECT * FROM PHRINFO WHERE BIMID = ? AND BINMCD=?");
+		$mid =$_SESSION['nmid'];
+		$ncd =  $_SESSION['searchNmc'];
+		$stmt = odbc_prepare( $conn, $sql )	or die("getbasicsummaryinfo Prepare failed! ". odbc_stmt_errormsg());
+		if(odbc_execute($stmt,array($mid,$ncd)))
+		{
+			while ( $row = odbc_fetch_array ( $stmt ) )
+			{
+				$this->_results[] = $row;
+			}		
+		}
+		odbc_close ( $conn );
+	}
+
+//gathers data the cannot be edited and populates display, or edit page.
+	public function getcoreinfo(){
+		
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql = ("SELECT * FROM WEBACCT WHERE NMID = ? AND NMC=?");
+		$mid =$_SESSION['nmid'];
+		$ncd =  $_SESSION['searchNmc'];
+		$stmt = odbc_prepare( $conn, $sql )	or die("getbasicsummaryinfo Prepare failed! ". odbc_stmt_errormsg());
+		if(odbc_execute($stmt,array($mid,$ncd)))
+		{
+			while ( $row = odbc_fetch_array ( $stmt ) )
+			{
+				$this->_coreresults[] = $row;
+			}
+		}
+		odbc_close ( $conn );
+	}
+	
+//for the update page this is the save function used, and will activate a flag and goto the addEdit.php page to be modified
+	function save(){	
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql = ("INSERT INTO PHRINFO (BIMID,BINMCD,BIADDR1,BIADDR2,BICITY,BISTATE,BIZIP,BIZIP4,BIPOB,BISEX,BIRACE,BIHAIR,BIEYES,BIHGHTFT,BIHGHTIN,BIWEIGHT,BIBLOODTYP,BIMARSTAT,BINUMKIDS,BIWILL,BIEMAIL,BIPHONE,BIPHONE2,BICELL,BIWORK) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ");
+		$mid1=$this->mid;
+		$nmcd1=  $_SESSION['searchNmc'];
+		$addr11=$this->address;
+		$addr21=$this->address2;
+		$city1=$this->city;
+		$state1=$this->state;
+	
+//checks if fields have a letter where a number should be and will notify the user of the correct data type required.
+//If a non interger value has been keyed in then a marker indicating an error is set to session variable.  
+//This is cleared the beginning of the save function.
+	if(!ctype_digit(trim($this->zip))){
+			$_SESSION['ezip']=A;
+			$_SESSION['zip']=$this->zip;
+		}else{}
+
+		if(!ctype_digit(trim($this->zip4))){
+			$_SESSION['ezip4']=A;
+			$_SESSION['zip4']=$this->zip4;
+			
+		}else{}
+		
+		if(!ctype_digit(trim($_POST['areacode']))){
+			$_SESSION['eareacode']=A;
+			$_SESSION['ephone1']=trim($this->phone);
+		}else{$_SESSION['ephone1']=trim($this->phone);}
+		
+		if(!ctype_digit(trim($_POST['prefix']))){
+			$_SESSION['eprefix']=B;
+				$_SESSION['ephone1']=trim($this->phone);
+		}else{$_SESSION['ephone1']=trim($this->phone);}
+		
+		if(!ctype_digit(trim($_POST['location']))){
+			$_SESSION['elocation']=C;
+			$_SESSION['ephone1']=trim($this->phone);
+		}else{$_SESSION['ephone1']=trim($this->phone);}
+
+		if(!ctype_digit(trim($_POST['areacode2']))){//secondary phone
+			$_SESSION['eareacode2']=A;
+			$_SESSION['ephone2']=trim($this->phone2);
+		}else{$_SESSION['ephone2']=trim($this->phone2);}
+		
+		if(!ctype_digit(trim($_POST['prefix2']))){
+			$_SESSION['eprefix2']=B;
+			$_SESSION['ephone2']=trim($this->phone2);
+		}else{$_SESSION['ephone2']=trim($this->phone2);}
+		
+		if(!ctype_digit(trim($_POST['location2']))){
+				$_SESSION['elocation2']=C;
+				$_SESSION['ephone2']=trim($this->phone2);
+		}else{$_SESSION['ephone2']=trim($this->phone2);}
+
+		if(trim($_POST['ext2'])==null or trim($_POST['ext2'])=='0'){$_POST['ext2']=0;}
+		
+		if(!ctype_digit(trim($_POST['ext2']))){
+			$_SESSION['ext2']=D;
+		}else{}
+
+		if(!ctype_digit(trim($_POST['areacodec']))){//cell phone
+			$_SESSION['eareacodec']=A;
+			$_SESSION['ecellphone']=trim($this->cellphone);
+		}else{$_SESSION['ecellphone']=trim($this->cellphone);}
+		
+		if(!ctype_digit(trim($_POST['prefixc']))){
+			$_SESSION['eprefixc']=B;
+		$_SESSION['ecellphone']=trim($this->cellphone);
+		}else{$_SESSION['ecellphone']=trim($this->cellphone);}
+		
+		if(!ctype_digit(trim($_POST['locationc']))){
+			$_SESSION['elocationc']=C;
+			$_SESSION['ecellphone']=trim($this->cellphone);
+		}else{$_SESSION['ecellphone']=trim($this->cellphone);}
+
+		if(!ctype_digit(trim($_POST['areacodew']))){//work phone
+			$_SESSION['eareacodew']=A;
+			$_SESSION['eworkphone']=trim($this->workphone);
+		}else{$_SESSION['eworkphone']=trim($this->workphone);}
+		
+		if(!ctype_digit(trim($_POST['prefixw']))){
+			$_SESSION['eprefixw']=B;
+			$_SESSION['eworkphone']=trim($this->workphone);
+		}else{$_SESSION['eworkphone']=trim($this->workphone);}
+		
+		if(!ctype_digit(trim($_POST['locationw']))){
+		$_SESSION['elocationw']=C;
+		$_SESSION['eworkphone']=trim($this->workphone);
+		}else{$_SESSION['eworkphone']=trim($this->workphone);}
+		if(trim($_POST['extw'])==null){$_POST['extw']=0;}
+		
+		if(!ctype_digit(trim($_POST['extw']))){
+		$_SESSION['extw']=W;
+		$_SESSION['eworkphone']=trim($this->workphone);
+		}else{$_SESSION['eworkphone']=trim($this->workphone);}
+
+		if(!ctype_digit(trim($_POST['weight']))){			
+			$_SESSION['eweight1']='A';
+			$_SESSION['eweight']=$this->weight;
+		}else{$_SESSION['eweight1']=$_POST['weight'];}
+//populates variables with what is posted from the addEdit.php page
+		
+	if ($_POST['gender']==''){
+			$this->gender = '';
+		}else {
+			$this->gender =  ucwords(strtolower($_POST['gender']));
+		}
+
+		if ($_POST['race']==''){
+			$this->race = '';
+		}else {
+			$this->race = $_POST['race'];
+		}
+		$zip1=$this->zip;
+		$zip4=$this->zip4;
+		$pob1=$this->pob;
+		$sex1=$this->gender;
+		$race1=$this->race;
+		$hair1=$this->hair;
+		$eyes1=$this->eye;
+		$hghtft1=$this->height;
+		$hghtin1=$this->heighti;
+		$weight1=$this->weight;
+		$bloodtyp1=$this->bloodtype;
+		$marstat1=$this->maritalstatus;
+		$numkids1=$this->numberofchildren;
+		$will1=$this->livingwill;
+		$email1=$this->email;
+		$phone1=trim($this->phone);
+		$phone2=trim($this->phone2);
+		$cellphone=trim($this->cellphone);
+		$workphone=trim($this->workphone);
+//checks for errors and will goto the addEdit.php page and break to stop any other methods from activating
+		if(!ctype_digit(trim($this->zip))) {header("Location: addEdit.php");break;	}else{}
+		if(!ctype_digit(trim($this->zip4)))  {header("Location: addEdit.php");break;	}else{}
+		$this->areacode = $_POST['areacode'];
+		if(!ctype_digit(trim($_POST['areacode'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->prefix = $_POST['prefix'];
+		if(!ctype_digit(trim($_POST['prefix'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->location = $_POST['location'];
+		if(!ctype_digit(trim($_POST['location']))) {header("Location: addEdit.php");break;	}else{}
+		$this->areacode2 = $_POST['areacode2'];
+		if(!ctype_digit(trim($_POST['areacode2'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->prefix2 = $_POST['prefix2'];
+		if(!ctype_digit(trim($_POST['prefix2'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->location2 = $_POST['location2'];
+		if(!ctype_digit(trim($_POST['location2'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->ext2 = $_POST['ext2'];
+		if(!ctype_digit(trim($_POST['ext2'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->areacodec = $_POST['areacodec'];
+		if(!ctype_digit(trim($_POST['areacodec']))) {header("Location: addEdit.php");break;	}else{}
+		$this->prefixc = $_POST['prefixc'];
+		if(!ctype_digit(trim($_POST['prefixc'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->locationc = $_POST['locationc'];
+		if(!ctype_digit(trim($_POST['locationc'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->areacodew = $_POST['areacodew'];
+		if(!ctype_digit(trim($_POST['areacodew'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->prefixw = $_POST['prefixw'];
+		if(!ctype_digit(trim($_POST['prefixw'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->locationw = $_POST['locationw'];
+		if(!ctype_digit(trim($_POST['locationw'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->extw = $_POST['extw'];
+		if(!ctype_digit(trim($_POST['extw'])))  {header("Location: addEdit.php");break;	}else{}
+		$this->weightw = $_POST['weight'];
+		if(!ctype_digit(trim($_POST['weight'])))  {header("Location: addEdit.php");break;	}else{}
+		if($this->gender==''){$sex1=$_SESSION['egender'];}else{}
+		if($this->race==''){$race1=$_SESSION['erace1'];}
+		if($_SESSION['ehghtft1']==''){$hghtft1=$this->height;}else{$hghtft1=$_SESSION['ehghtft1'];}
+		if($_SESSION['ehghtin1']==''){$hghtin1=$this->heighti;}else{$hghtin1=$_SESSION['ehghtin1'];}
+//preparing the data to have the action performed based on the SQL statement	
+		$stmt = odbc_prepare( $conn, $sql )	or die("Prepare failed! ". odbc_stmt_errormsg());
+
+//list of variables to be saved to the file on the SQL
+		$this->savearray=array(
+		$mid1,
+		$nmcd1,
+		$addr11,
+		$addr21,
+		$city1,
+		$state1,
+		$zip1,
+		$zip4,
+		$pob1,
+		$sex1,
+		$race1,
+		$hair1,
+		$eyes1,
+		$hghtft1,
+		$hghtin1,
+		$weight1,
+		$bloodtyp1,
+		$marstat1,
+		$numkids1,
+		$will1,
+		$email1,
+		$phone1,
+		$phone2,
+		$cellphone,
+		$workphone);
+		if(odbc_execute($stmt,$this->savearray)){
+//Once save is successful the session variables are unset so they don't stay in memory
+			While($row = odbc_fetch_array( $stmt ));{
+				unset($_SESSION['ezip']);
+				unset($_SESSION['ezip4']);
+				unset($_SESSION['ephone1']);
+				unset($_SESSION['ephone2']);
+				unset($_SESSION['ecellphone']);
+				unset($_SESSION['eworkphone']);
+				unset($_SESSION['eareacode']);
+				unset($_SESSION['eareacode2']);
+				unset($_SESSION['eareacodec']);
+				unset($_SESSION['eareacodew']);
+				unset($_SESSION['eprefix']);
+				unset($_SESSION['eprefix2']);
+				unset($_SESSION['eprefixc']);
+				unset($_SESSION['eprefixw']);
+				unset($_SESSION['elocation']);
+				unset($_SESSION['elocation2']);
+				unset($_SESSION['elocationc']);
+				unset($_SESSION['elocationw']);
+				unset($_SESSION['extw']);
+				unset($_SESSION['ext2']);
+				unset($_SESSION['eweight1']);
+			}
+		}
+
+		odbc_close ( $conn );
+	}
+		
+	public function savebasic(){ //save function for the edit and error pages.
+	
+			unset($_SESSION['eareacode']);
+			unset($_SESSION['eareacode2']);
+			unset($_SESSION['eareacodec']);
+			unset($_SESSION['eareacodew']);
+			unset($_SESSION['eprefix']);
+			unset($_SESSION['eprefix2']);
+			unset($_SESSION['eprefixc']);
+			unset($_SESSION['eprefixw']);
+			unset($_SESSION['elocation']);
+			unset($_SESSION['elocation2']);
+			unset($_SESSION['elocationc']);
+			unset($_SESSION['elocationw']);
+			unset($_SESSION['ephone1']);
+			unset($_SESSION['ephone2']);
+			unset($_SESSION['ecellphone']);
+			unset($_SESSION['eworkphone']);
+			unset($_SESSION['ext2']);
+			unset($_SESSION['extw']);
+		
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql =  "UPDATE PHRINFO SET BIADDR1 =?,BIADDR2 =? ,BICITY = ?,BISTATE = ?,BIZIP = ?,BIZIP4 = ?, BIPOB = ?,BISEX = ?,BIRACE = ?,BIHAIR = ?,BIEYES = ?,BIHGHTFT = ?,BIHGHTIN = ?,BIWEIGHT = ?,BIBLOODTYP = ?,BIMARSTAT = ?,BINUMKIDS = ?,BIWILL = ? ,BIPHONE = ?,BIPHONE2 = ?,BICELL = ?,BIWORK = ?, BIEMAIL = ?  WHERE BIMID = ? AND BINMCD=?";
+		$stmt = odbc_prepare( $conn, $sql )	or die("Update savebasic Prepare failed! ". odbc_stmt_errormsg());
+		$dbaddress = $this->address;
+		$dbaddress2 =$this->address2;
+		$dbcity =$this->city;
+		$dbstate =$this->state;
+		$dbzip =$this->zip;
+		$dbzip4 =$this->zip4;
+		$_SESSION['zip'] =$this->zip;
+		$dbzip4 =$this->zip4;
+		$_SESSION['zip4']=$dbzip4;
+		//checks if a non interger value was entered if so then the marker session variable is created to highlight the error page.
+		if(!ctype_digit(trim($this->zip))){
+			$_SESSION['ezip']=A;
+			$_SESSION['zip']=$this->zip;
+		}else{$this->zip;}
+
+		if(!ctype_digit(trim($this->zip4))){
+			$_SESSION['ezip4']=A;
+			$_SESSION['zip4']=$this->zip4;
+		}else{}
+		
+		if(!ctype_digit(trim($_POST['areacode']))){
+			$_SESSION['eareacode']=A;
+				$_SESSION['ephone1']=trim($this->phone);
+		}else{}
+		
+		if(!ctype_digit(trim($_POST['prefix']))){
+			$_SESSION['eprefix']=B;
+			$_SESSION['ephone1']=trim($this->phone);
+		}else{$_SESSION['ephone1']=trim($this->phone);}
+		
+		if(!ctype_digit(trim($_POST['location']))){
+			$_SESSION['elocation']=C;
+			$_SESSION['ephone1']=trim($this->phone);
+		}else{$_SESSION['ephone1']=trim($this->phone);}
+
+		if(!ctype_digit(trim($_POST['areacode2']))){//secondary phone
+			$_SESSION['eareacode2']=A;
+			$_SESSION['ephone2']=trim($this->phone2);
+		}else{$_SESSION['ephone2']=trim($this->phone2);}
+		
+		if(!ctype_digit(trim($_POST['prefix2']))){
+			$_SESSION['eprefix2']=B;
+			$_SESSION['ephone2']=trim($this->phone2);
+		}else{$_SESSION['ephone2']=trim($this->phone2);}
+		
+		if(!ctype_digit(trim($_POST['location2']))){
+			$_SESSION['elocation2']=C;
+			$_SESSION['ephone2']=trim($this->phone2);
+		}else{$_SESSION['ephone2']=trim($this->phone2);}
+
+		if(trim($_POST['ext2'])==null or trim($_POST['ext2'])=='0'){$_POST['ext2']=0;}
+		
+		if(!ctype_digit(trim($_POST['ext2']))){
+			$_SESSION['ext2']=D;
+		}else{}
+
+		if(!ctype_digit(trim($_POST['areacodec']))){//cell phone
+			$_SESSION['eareacodec']=A;
+			$_SESSION['ecellphone']=trim($this->cellphone);
+		}else{$_SESSION['ecellphone']=trim($this->cellphone);}
+		
+		if(!ctype_digit(trim($_POST['prefixc']))){
+			$_SESSION['eprefixc']=B;
+			$_SESSION['ecellphone']=trim($this->cellphone);
+		}else{$_SESSION['ecellphone']=trim($this->cellphone);}
+		
+		if(!ctype_digit(trim($_POST['locationc']))){
+			$_SESSION['elocationc']=C;
+			$_SESSION['ecellphone']=trim($this->cellphone);
+		}else{$_SESSION['ecellphone']=trim($this->cellphone);}
+
+		if(!ctype_digit(trim($_POST['areacodew']))){//work phone
+			$_SESSION['eareacodew']=A;
+			$_SESSION['eworkphone']=trim($this->workphone);
+		}else{$_SESSION['eworkphone']=trim($this->workphone);}
+		
+		if(!ctype_digit(trim($_POST['prefixw']))){
+			$_SESSION['eprefixw']=B;
+			$_SESSION['eworkphone']=trim($this->workphone);
+		}else{$_SESSION['eworkphone']=trim($this->workphone);}
+		
+		if(!ctype_digit(trim($_POST['locationw']))){
+		$_SESSION['elocationw']=C;
+		$_SESSION['eworkphone']=trim($this->workphone);
+		}else{$_SESSION['eworkphone']=trim($this->workphone);}
+		if(trim($_POST['extw'])==null){$_POST['extw']=0;}
+		
+		if(!ctype_digit(trim($_POST['extw']))){
+		$_SESSION['extw']=W;
+		$_SESSION['eworkphone']=trim($this->workphone);
+		}else{$_SESSION['eworkphone']=trim($this->workphone);}
+
+		if(!ctype_digit(trim($_POST['weight']))){			
+			$_SESSION['eweight1']='A';
+			$_SESSION['eweight']=$this->weight;
+		}else{$_SESSION['eweight1']=$_POST['weight'];}
+	
+	if ($_POST['gender']==''){
+			$this->gender = '';
+		}else {
+			$this->gender =  ucwords(strtolower($_POST['gender']));
+		}
+
+		if ($_POST['race']==''){
+			$this->race = '';
+		}else {
+			$this->race = $_POST['race'];
+		}
+	
+		$dbplaceofbirth =$this->pob;
+		$dbgender =$this->gender;
+		$dbrace =$this->race;
+		$dbhaircolor =$this->hair;
+		$dbeyecolor =$this->eye;
+		$dbheightfeet =$this->height;
+		$dbheightin =$this->heighti;
+		$dbweight =$this->weight;
+		$dbbloodtype =$this->bloodtype;
+		$dbmarriagestatus =$this->maritalstatus;
+		$dbnumberofkids =$this->numberofchildren;
+		$dbwillonrecord =$this->livingwill;
+		$dbphone =$this->phone;
+		$dbphone2 =$this->phone2;
+		$dbcellphone =$this->cellphone;
+		$dbworkphone =$this->workphone;
+		$dbemail =$this->email;
+		$dbmemberid = $_SESSION['nmid'];
+		$dbnamecode =   $_SESSION['searchNmc'];
+	//if there is an error then the error page will be opened so the user can fix the error.
+		if(!ctype_digit(trim($this->zip))) {include ('addEdit2.php'); break;	}else{}
+		$this->zip4 = $_POST['zip4'];
+		if(!ctype_digit(trim($this->zip4))) {include ('addEdit2.php');break;	}else{}
+		$this->areacode = $_POST['areacode'];
+		if(!ctype_digit(trim($_POST['areacode']))) {include ('addEdit2.php');break;}else{}
+		$this->prefix = $_POST['prefix'];
+		if(!ctype_digit(trim($_POST['prefix']))){include ('addEdit2.php');break;}else{}
+		$this->location = $_POST['location'];
+		if(!ctype_digit(trim($_POST['location']))){include ('addEdit2.php');break;}else{}
+		$this->areacode2 = $_POST['areacode2'];
+		if(!ctype_digit(trim($_POST['areacode2']))) {include ('addEdit2.php');break;}else{}
+		$this->prefix2 = $_POST['prefix2'];
+		if(!ctype_digit(trim($_POST['prefix2'])))  {include ('addEdit2.php');break;}else{}
+		$this->location2 = $_POST['location2'];
+		if(!ctype_digit(trim($_POST['location2']))){include ('addEdit2.php');break;}else{}
+		$this->ext2 = $_POST['ext2'];
+		if(!ctype_digit(trim($_POST['ext2']))) {include ('addEdit2.php');break;}else{}
+		$this->areacodec = $_POST['areacodec'];
+		if(!ctype_digit(trim($_POST['areacodec']))) {include ('addEdit2.php');break;}else{}
+		$this->prefixc = $_POST['prefixc'];
+		if(!ctype_digit(trim($_POST['prefixc']))) {include ('addEdit2.php');break;}else{}
+		$this->locationc = $_POST['locationc'];
+		if(!ctype_digit(trim($_POST['locationc']))) {include ('addEdit2.php');break;}else{}
+		$this->areacodew = $_POST['areacodew'];
+		if(!ctype_digit(trim($_POST['areacodew']))) {include ('addEdit2.php');break;}else{}
+		$this->prefixw = $_POST['prefixw'];
+		if(!ctype_digit(trim($_POST['prefixw']))) {include ('addEdit2.php');break;}else{}
+		$this->locationw = $_POST['locationw'];
+		if(!ctype_digit(trim($_POST['locationw']))) {include ('addEdit2.php');break;}else{}
+		$this->extw = $_POST['extw'];
+		if(!ctype_digit(trim($_POST['extw']))) {include ('addEdit2.php');break;}else{}
+		$this->weightw = $_POST['weight'];
+		if(!ctype_digit(trim($_POST['weight']))) {include ('addEdit2.php');break;}else{}
+		if($this->gender==''){$dbgender=$_SESSION['egender'];}else{}
+		if($this->race==''){$dbrace=$_SESSION['erace1'];}
+		if($_SESSION['ehghtft1']==''){$dbheightfeet=$this->height;}else{$dbheightfeet=$_SESSION['ehghtft1'];}
+		if($_SESSION['ehghtin1']==''){$dbheightin=$this->heighti;}else{$dbheightin=$_SESSION['ehghtin1'];}
+		$dbzip=$this->zip;
+		
+	
+		//*******************************************************************************************
+
+
+		//*******************************************************************************************
+		$this->savebasicarray=array(				$dbaddress,
+		$dbaddress2,
+		$dbcity,
+		$dbstate,
+		$dbzip,
+		$dbzip4,
+		$dbplaceofbirth,
+		$dbgender,
+		$dbrace,
+		$dbhaircolor,
+		$dbeyecolor,
+		$dbheightfeet,
+		$dbheightin,
+		$dbweight,
+		$dbbloodtype,
+		$dbmarriagestatus,
+		$dbnumberofkids,
+		$dbwillonrecord,
+		$dbphone,
+		$dbphone2,
+		$dbcellphone,
+		$dbworkphone,
+		$dbemail,
+		$dbmemberid,
+		$dbnamecode);
+		
+		if(odbc_execute($stmt,$this->savebasicarray)){
+
+			While($row = odbc_fetch_array( $stmt ));{
+	
+				unset($_SESSION['ezip']);
+				unset($_SESSION['ezip4']);
+				unset($_SESSION['ephone1']);
+				unset($_SESSION['ephone2']);
+				unset($_SESSION['ecellphone']);
+				unset($_SESSION['eworkphone']);
+				unset($_SESSION['eareacode']);
+				unset($_SESSION['eareacode2']);
+				unset($_SESSION['eareacodec']);
+				unset($_SESSION['eareacodew']);
+				unset($_SESSION['eprefix']);
+				unset($_SESSION['eprefix2']);
+				unset($_SESSION['eprefixc']);
+				unset($_SESSION['eprefixw']);
+				unset($_SESSION['elocation']);
+				unset($_SESSION['elocation2']);
+				unset($_SESSION['elocationc']);
+				unset($_SESSION['elocationw']);
+				unset($_SESSION['extw']);
+				unset($_SESSION['ext2']);
+				unset($_SESSION['eweight1']);
+			}	
+		}	
+		odbc_close ( $conn );
+	}
+	
+	public function returnResults()
+	{
+		return $this->_results;
+	}
+	
+	public function returnthis(){
+	return $this->_coreresults;
+	}
+	
+	public function returnresultssave(){
+	return $this->resultssave;
+	}
+	
+	public function returnresults2(){
+	return $this->results2;
+	}
+	
+	public function returnErrors()
+	{
+		return $this->errors;
+	}
+	
+	public function returnEZipError(){
+		
+		return $this->tempEZip;
+	}
+	
+	public function returnCell(){
+	return $this->cellphone;	
+	}
+	
+	
+	
+}
+?>

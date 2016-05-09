@@ -1,0 +1,967 @@
+Class.PHRContact.php
+<?php
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// Script: /www/nalc/classes/class.PHRbasic.php
+//
+// Purpose:  Housing the functions for the contact list
+// 
+//
+// Author: Evan Grob 4/10/2014
+//
+//
+//
+//
+////////////////////////////////////////////////////////////////////////////////////////////
+
+class PHRContacts{
+	private $resultssave;
+	private $coreresults;
+	private $type;
+	private $results1;
+	private $_resultseditaddedit;
+
+
+public function __construct(){
+		$this->bscname=null;
+		$this->bscaddressline1=null;
+		$this->bscaddressline2=null;
+		$this->bsccity=null;
+		$this->bscstate=null;
+		$this->bsczip=null;
+		$this->bsczip4=null;
+		$this->bscphonenumber=null;
+		$this->bscemail=null;
+		$this->bscrelationship=null;
+		$this->saveadd=null;
+		$this->errors = array();
+		$this->mid = $_POST['mid'];
+		$this->namecode = $_SESSION['searchNmc'];
+		$this->address = null;
+		$this->address2 = null;
+		$this->city = null;
+		$this->state = null;
+		$this->zip = null;
+		$this->zip4 = null;
+		$this->pob = null;
+		$this->gender = null;
+		$this->race = null;
+		$this->hair = null;
+		$this->eye = null;
+		$this->height = null;
+		$this->weight = null;
+		$this->bloodtype = null;
+		$this->maritalstatus = null;
+		$this->numberofchildren = null;
+		$this->livingwill = null;
+		$this->phone = null;
+		$this->phone2 = null;
+		$this->cellphone = null;
+		$this->workphone = null;
+		$this->email = $_SESSION['email'];
+		$this->gotobspindx = null;
+		$this->mid = $_POST['mid'];
+		$this->namecode = $_SESSION['nmc'];
+		 $this->resultssave=array();
+	$this->_coreresults=array();
+ $this->type=array();
+ $this->_results1=array();
+	 $this->_resultseditaddedit=array();
+		$this->_results = array();
+		$this->_coreresults = array();
+		//construct addcontacts variables
+		if ($_POST['bscname']==''){
+			$this->bscname ='';
+				
+		}else {
+			$this->bscname = substr( $_POST['bscname'],0,50);		
+		}
+
+		if ($_POST['bscaddress']==''){
+			$this->bscaddress ='';
+		}else {
+			$this->bscaddress = substr( $_POST['bscaddress'],0,50);
+				
+		}
+		if ($_POST['bscaddressline2']==''){
+			$this->bscaddress2 ='';
+		}else {
+			$this->bscaddress2 =substr( $_POST['bscaddressline2'],0,50);
+		}
+
+		if ($_POST['bsccity']==''){
+			$this->bsccity = '';
+		}else {
+			$this->bsccity =substr( $_POST['bsccity'],0,20);
+		}
+		if ($_POST['bscstate']==''){
+			$this->bscstate = '';
+		}else {
+			$this->bscstate = $_POST['bscstate'];
+		}
+
+
+		if (trim($_POST['bsczipcode'])==''){
+			$this->bsczip = '0';
+			$_POST['bsczipcode'] = '0';
+		}else {
+			$zipbsc = $_POST['bsczipcode'];
+			$this->bsczip = str_pad($zipbsc,5,"0",STR_PAD_LEFT);
+		}
+		if (trim($_POST['bsczipcode4'])==''){
+			$this->bsczip4 = '0';
+			$_POST['bsczipcode4']='0';
+		}else {
+			$zerozip4bsc = $_POST['bsczipcode4'];
+			$truzip4bsc = str_pad($zerozip4bsc,4,"0",STR_PAD_LEFT);
+
+			$this->bsczip4 = $truzip4bsc;
+		}
+		$bscphonenumber = $_POST['bscareacode'].$_POST['bscprefix'].$_POST['bsclocation'].$_POST['bscext'];
+		if (trim($bscphonenumber)==''){
+			$this->bscphone = '0';
+			$_POST['bscareacode']='0';
+			$_POST['bscprefix']='0';
+			$_POST['bsclocation']='0';
+			$_POST['bscext']='0';
+		}else {
+			$this->phonebsc = ($_POST['bscareacode'].$_POST['bscprefix'].$_POST['bsclocation'].$_POST['bscext']);
+		}
+		if ($_POST['bscphonetype']==101){
+			$this->bscphonetype ='Home';
+		}elseif ($_POST['bscphonetype'] == 102)
+		{
+			$this->bscphonetype ='Work';
+		}elseif($_POST['bscphonetype'] == 103)
+		{
+			$this->bscphonetype ='Cell';
+		}
+
+		if ($_POST['bscphonetype']=='Home'){
+			$this->bscphonetype =101;
+		}elseif ($_POST['bscphonetype'] == 'Work')
+		{
+			$this->bscphonetype =102;
+		}elseif($_POST['bscphonetype'] == 'Cell')
+		{
+			$this->bscphonetype =103;
+		}
+		if ($_POST['bscemail']==''){
+			$this->bscemail =' ';
+		}else {
+			$this->bscemail = substr( $_POST['bscemail'],0,64);
+		}
+		if ($_POST['bscrelationship']==null){
+			$this->bscrelationship =' ';
+		}else {
+			$this->bscrelationship = substr( $_POST['bscrelationship'],0,20);
+		}
+	}
+	
+public function checkaddcontacts()
+	{
+	
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql = ("SELECT * FROM PHRCON WHERE CNMID = ? AND CNNMCD=?");
+		$mid =$_SESSION['nmid'];
+		$ncd =  $_SESSION['searchNmc'];
+		$stmt = odbc_prepare( $conn, $sql )	or die("<br>User MID Prepare failed! ". odbc_stmt_errormsg());
+
+
+
+		$counter=0;
+		if(odbc_execute($stmt,array($mid,$ncd)))
+		{
+			while ( $row = odbc_fetch_array ( $stmt ) )
+			{
+				$this->type[]=$row['CNID'];
+				foreach($this->type as $key=>$value){
+					if($value>90)
+
+
+
+					{return $row?1:0;}
+
+				}
+			}
+		}
+		odbc_close ( $conn );
+	}
+public function getsave()
+	{
+		
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql = ("SELECT * FROM PHRCON WHERE CNMID = ? AND CNNMCD=?");
+		$mid =$_SESSION['nmid'];
+		$ncd =  $_SESSION['searchNmc'];
+		$stmt = odbc_prepare( $conn, $sql )	or die("<br>User MID Prepare 
+
+failed! ". odbc_stmt_errormsg());
+
+		if(odbc_execute($stmt,array($mid,$ncd)))
+		{
+			while ( $row = odbc_fetch_array ( $stmt ) )
+			{
+				$this->resultssave[] = $row;
+				
+			}
+		}
+		odbc_close ( $conn );
+	}
+	public function getsave1()
+	{
+		
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql = ("SELECT * FROM PHRCON WHERE CNMID = ? AND CNNMCD=?");
+		$mid =$_SESSION['nmid'];
+		$ncd =  $_SESSION['searchNmc'];
+		$stmt = odbc_prepare( $conn, $sql )	or die("<br>User MID Prepare 
+
+failed! ". odbc_stmt_errormsg());
+
+		if(odbc_execute($stmt,array($mid,$ncd)))
+		{
+			while ( $row = odbc_fetch_array( $stmt ) )
+			{
+				$this->resultssave1[] = $row;
+			}
+		}
+		odbc_close ( $conn );
+	}
+
+	
+public function getcoreinfo(){
+		
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql = ("SELECT * FROM WEBACCT WHERE NMID = ? AND NMC=?");
+		$mid =$_SESSION['nmid'];
+		$ncd =  $_SESSION['searchNmc'];
+
+		$stmt = odbc_prepare( $conn, $sql )	or die("getbasicsummaryinfo Prepare failed! ". odbc_stmt_errormsg());
+
+		if(odbc_execute($stmt,array($mid,$ncd)))
+		{
+			while ( $row = odbc_fetch_array ( $stmt ) )
+			{
+				$this->_coreresults[] = $row;
+			}
+				
+		}
+		odbc_close ( $conn );
+
+	}
+	
+	 
+	
+	public function getedit()
+	{
+
+$id=trim($_POST['displaybsc']);
+
+
+if($id=='Emergency Contact')
+{$CNID=94;}
+elseif
+($id=='Primary Physician')
+{$CNID=95;}
+elseif
+($id=='Other'){$CNID=96;}
+
+		if(strlen($id)==4){
+			$CNID=substr($id,0,2);
+			$CNREC =substr($id,2,2);}else {$CNID=substr($id,0,2);
+			$CNREC =substr($id,2,1);}
+			$conn = odbc_connect (SYSTEM, USER, PASS )
+			or die("Connection failed! ". odbc_conn_errormsg());
+			$sql = "SELECT * FROM PHRCON WHERE CNMID = ? AND CNNMCD= ? AND CNID=? AND CNREC#=?";
+			$mid1 = $_SESSION['nmid'];
+			$nmcd1 = $_SESSION['searchNmc'];
+			$CNID =$CNID;
+			$CNREC =$CNREC;
+	$stmt = odbc_prepare( $conn, $sql )	or die("<br>HCPP Prepare failed! ". odbc_stmt_errormsg());
+
+
+
+			if(odbc_execute($stmt,array($mid1,$nmcd1,$CNID,$CNREC)))
+			{
+				while ( $row = odbc_fetch_array ( $stmt ) )
+				{
+					$this->_results1[] = $row;
+				}
+			}
+
+			odbc_close ( $conn );
+
+	}
+
+public function geteditaddedit()
+	{
+
+
+
+		$id=trim($_POST['displaybsc']);
+
+		if(strlen($id)==4){
+			$CNID=substr($id,0,2);
+			$CNREC =substr($id,2,2);}else {$CNID=substr($id,0,2);
+			$CNREC =substr($id,2,1);}
+
+			
+			$conn = odbc_connect (SYSTEM, USER, PASS )
+			or die("Connection failed! ". odbc_conn_errormsg());
+			$sql = "SELECT * FROM PHRCON WHERE CNMID = ? AND CNNMCD= ? AND CNID=? AND CNREC#=?";
+			$mid1 = $_SESSION['nmid'];
+			$nmcd1 = $_SESSION['searchNmc'];
+			$CNID =$CNID;
+			$CNREC =$CNREC;
+
+
+			$stmt = odbc_prepare( $conn, $sql )	or die("<br>HCPP Prepare failed! ". odbc_stmt_errormsg());
+
+
+
+			if(odbc_execute($stmt,array($mid1,$nmcd1,$CNID,$CNREC)))
+			{
+				while ( $row = odbc_fetch_array ( $stmt ) )
+				{
+					$this->_resultseditaddedit[] = $row;
+				}
+			}
+
+			odbc_close ( $conn );
+
+	}
+	
+function saveaddcontact(){
+		unset($_SESSION['basicsummarycontactid1']);
+		unset($_SESSION['bscname1']);
+		unset($_SESSION['bscaddress1']);
+		unset($_SESSION['bscaddressline21']);
+		unset($_SESSION['bsccity1']);
+		unset($_SESSION['bscstate1']);
+		unset($_SESSION['bsczipcode1']);
+		unset($_SESSION['bsczipcode41']);
+		unset($_SESSION['bscareacode1']);
+		unset($_SESSION['bscprefix1']);
+		unset($_SESSION['bsclocation1']);
+		unset($_SESSION['bscext1']);
+		unset($_SESSION['bscphonetype1']);
+		unset($_SESSION['bscemail1']);
+		unset($_SESSION['bscrelationship1']);
+		
+
+		
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$N=1;
+		$sql = ("INSERT INTO PHRCON (CNMID,CNNMCD,CNID,CNREC#,CNNAME,CNADDR1,CNADDR2,CNCITY,CNSTATE,CNZIP1,CNZIP2,CNPHN1,CNPHN2,CNPHN1TYPE,CNEMAIL,CNREL) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ");
+		//$sql = ("INSERT INTO PHRCON (CNMID,CNNMCD,CNID,CNREC#,CNNAME,CNADDR1,CNADDR2,CNCITY,CNSTATE,CNZIP1,CNZIP2,CNPHN1,CNPHN1TYPE,CNREL) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ");
+		$mid1 = $_SESSION['nmid'];
+		$nmcd1 = $_SESSION['searchNmc'];
+		if($CNID==''){$CNID=$_POST['basicsummarycontactid'];}else{
+			$CNID=$this->basicsummarycontactidcontacttype;}
+if($CNID=='Emergency Contact')$CNID=94;elseif($CNID=='Primary Physician')$CNID=95;elseif($CNID=='Other')$CNID=96;
+$CNID2=$CNID;
+$n=1;
+$call = new PHRContacts();$call->getsave();
+$call->returngetsave();
+$dataset=$call->returngetsave();
+foreach($dataset as $idsave){
+	$datasave=$idsave['CNID'];
+	
+	if ($datasave==$CNID){
+		$n++; 
+	}else{$n=1; }
+}
+$rec=$n;
+$name=$this->bscname;
+				$address1=$this->bscaddress;
+				$address2=$this->bscaddress2;
+				$city=$this->bsccity;
+				$state=$this->bscstate;
+				if(trim($_POST['bscname'])==''){
+
+					$_SESSION['bscname'] = A;
+
+				
+				}else{}
+				if(!ctype_digit(trim($_POST['bsczipcode']))){
+					$_SESSION['bsczip'] = A;
+				
+				}else{}
+				if(!ctype_digit(trim($_POST['bsczipcode4']))){
+					$_SESSION['bsczip4'] = A;					
+					
+				}else{}
+				if(!ctype_digit(trim($_POST['bscareacode']))){					
+					$_SESSION['bscareacode']='A';
+				}else{}
+				if(!ctype_digit(trim($_POST['bscprefix']))){					
+					$_SESSION['bscprefix']='B';		
+				}else{}
+				if(!ctype_digit(trim($_POST['bsclocation']))){
+					$_SESSION['bsclocation']='C';	
+				}else{}
+				if(trim($_POST['bscext'])==null or trim($_POST['bscext'])=='0'){$_POST['bscext']=0;}
+				if(!ctype_digit(trim($_POST['bscext']))){				
+					$_SESSION['bscext']='D';
+					}else{}
+			if($CNID==''){$CNID=$_POST['basicsummarycontactid'];}else{
+					$CNID=$_SESSION['basicsummarycontactid'];}
+					if(trim($_POST['bscname'])==''){include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bsczipcode']))){include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bsczipcode4']))){include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bscareacode']))) {include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bscprefix']))) {include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bsclocation']))) {include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bscext']))){include ('addEdit1.php'); break;}else{}
+					$zip=htmlentities($this->bsczip);
+					$zip2=htmlentities($this->bsczip4);
+					$phone=$this->phonebsc;
+					$phonetype=$this->bscphonetype;
+					$this->codecatcher=$CNID;
+					$relationship=substr($this->bscrelationship,0,30);
+					$email=substr($this->bscemail,0,30);
+					$state=$this->bscstate;
+					$CNID=$_SESSION['basicsummarycontactid'];
+					$ext=$_POST['bscext'];
+						
+					if($CNID==''){$CNID=$_POST['basicsummarycontactid'];}else{
+						$CNID=$this->basicsummarycontactidcontacttype;}
+
+
+						$stmt = odbc_prepare( $conn, $sql )	or die("<br>HCPP Prepare failed! ". odbc_stmt_errormsg());
+						if($CNID==''){$CNID=$_SESSION['basicsummarycontactid'];}else{
+							$CNID=$_POST['basicsummarycontactid'];}
+
+							if($state ==''){$state = $this->bscstate;}else{$state=$_POST['bscstate'];}
+							if($phone=='')$phone=0;
+							if($phonetype==101)$phonetype='Home';elseif($phonetype==102)$phonetype='Work';elseif($phonetype==103)$phonetype='Cell';
+							if($email==''){$email=$email;}else{$email=$this->bscemail;}
+							if($relationship==''){$relationship=$relationship;}else{$relationship=$this->bscrelationship;}
+							$phone = substr($phone,0,10);
+							$CNID=$CNID5;
+							
+					
+									$CNID=$CNID2;
+						
+							$this->addcontactarray=array(	$mid1,
+							$nmcd1,
+							$CNID,
+							$rec,
+							$name,
+							$address1,
+							$address2,
+							$city,
+							$state,
+							$zip,
+							$zip2,
+							$phone,
+							$ext,
+							$phonetype,
+							$email,
+							$relationship);
+
+
+
+
+
+							if(odbc_execute($stmt,$this->addcontactarray))
+							{
+								While($row = odbc_fetch_array( $stmt ));{
+									unset($_SESSION['bscname']);
+									unset($_SESSION['bscaddress1']);
+									unset($_SESSION['bscaddress2']);
+									unset($_SESSION['bsccity'] );
+									unset($_SESSION['bscstate']);
+									unset($_SESSION['bscareacode']);
+									unset($_SESSION['bscprefix']);
+									unset($_SESSION['bsclocation']);
+									unset($_SESSION['bscext']);
+									unset($_SESSION['bscphonetype']);
+									unset($_SESSION['bsczip4']);
+									unset($_SESSION['bsczip']);
+									unset($_SESSION['id']);
+									unset($_SESSION['basicsummarycontactid']);
+									unset($_SESSION['bscemail']);
+									unset($_SESSION['bscrelationship']);
+								}
+								$affected = odbc_num_rows($stmt );
+								if($CNID==94)$CNID5='Emergency Contact';elseif($CNID==95)$CNID5='Primary Physician';elseif($CNID==96)$CNID5='Other';
+								if($affected> 0)
+							{ ?><b><font color="#00254A"  size="4"><?php echo $CNID5?> add successful!</font></b><?;}
+else
+{?><b><font color="#00254A"  size="4">Record Not Added</font></b><?;}
+							}
+							odbc_close ( $conn );
+
+	}
+	
+function saveeditaddcontact(){
+									unset($_SESSION['bscname']);
+									unset($_SESSION['bscareacode']);
+									unset($_SESSION['bscprefix']);
+									unset($_SESSION['bsclocation']);
+									unset($_SESSION['bscext']);
+									unset($_SESSION['bsczip4']);
+									unset($_SESSION['bsczip']);
+									unset($_SESSION['id']);
+									unset($_SESSION['basicsummarycontactid']);
+		$N1=1;
+		$id=$_POST['displaybsc'];
+//echo 'id'.$id;
+//if ($id='1'){
+//$id2=$_POST['basicsummarycontactid'];
+
+//if($id2=='Emergency Contact')$CNID=94;elseif($id2=='Primary Physician')$CNID=95;elseif($id2=='Other')$CNID=96;
+//$CNREC='1';)
+$CNREC12=$CNREC;
+$CNID12=$CNID;
+$_SESSION['id']=$id;
+		//modify
+		if(strlen($id)==4){
+			$CNID=substr($id,0,2);
+			$CNREC =substr($id,2,2);}else {$CNID=substr($id,0,2);
+			$CNREC =substr($id,2,1);}
+	//echo 'cnid12:  '.$CNID;
+//echo 'cnrec12'.$CNREC;	
+			$PostId=$_POST['basicsummarycontactid'];
+			IF(trim($CNID) !==trim($PostId)){
+				$CNID12=$_POST['basicsummarycontactid'];
+			
+				if ($CNID12=='Primary Physician'){
+					$CNID12=95;
+				}
+			if ($CNID12=='Emergency Contact'){
+					$CNID12=94;
+				}
+				if ($CNID12=='Other'){
+					$CNID12=96;
+				}
+			
+			}
+//echo 'ID 2: '.$CNID;
+//echo 'Rec'.$CNREC;
+$CNREC12=$CNREC;
+$CNID12=$CNID;
+			$rec=$CNREC;
+
+
+				
+			
+			$conn = odbc_connect (SYSTEM, USER, PASS )
+			or die("Connection failed! ". odbc_conn_errormsg());
+				
+			$sql = "UPDATE PHRCON SET CNID=?, CNREC#=?, CNNAME = ? ,CNADDR1 = ?,CNADDR2 = ?, CNCITY = ?, CNSTATE = ?, CNZIP1 = ?, CNZIP2 = ?, CNPHN1 = ?, CNPHN2 = ?,CNPHN1TYPE=? ,CNEMAIL=? ,CNREL=? WHERE CNMID = ? AND CNNMCD=? AND CNID=? AND CNREC#=?";
+
+			$mid1 = $_SESSION['nmid'];
+			$nmcd1 = $_SESSION['searchNmc'];
+
+
+
+			$name=$this->bscname;
+			$address1=$this->bscaddress;
+			$address2=$this->bscaddress2;
+			$city=$this->bsccity;
+			$state=$this->bscstate;
+			if(trim($_POST['bscname'])==''){
+				$_SESSION['bscname'] = A;
+				
+			}else{}
+			if(!ctype_digit(trim($_POST['bsczipcode']))){
+					
+				$_SESSION['bsczip'] = A;
+			
+			}else{}
+			if(!ctype_digit(trim($_POST['bsczipcode4']))){
+				$_SESSION['bsczip4'] = A;
+			
+			}else{}
+			if(!ctype_digit(trim($_POST['bscareacode']))){
+				
+				
+				$_SESSION['bscareacode']='A';
+
+			}else{}
+			if(!ctype_digit(trim($_POST['bscprefix']))){
+			
+				$_SESSION['bscprefix']='B';
+				
+			}else{}
+			if(!ctype_digit(trim($_POST['bsclocation']))){
+				
+				$_SESSION['bsclocation']='C';
+				
+			}else{}
+			if(trim($_POST['bscext'])==null or trim($_POST['bscext'])=='0'){$_POST['bscext']=0;}
+			if(!ctype_digit(trim($_POST['bscext']))){	
+				$_SESSION['bscext']='D';
+				
+			}else{}
+			if(trim($_POST['bscname'])=='') {include ('addEditContacts.php'); break;}else{}
+			if(!ctype_digit(trim($_POST['bsczipcode']))) {include ('addEditContacts.php'); break;}else{}
+			if(!ctype_digit(trim($_POST['bsczipcode4'])))  {include ('addEditContacts.php'); break;}else{}
+			if(!ctype_digit(trim($_POST['bscareacode']))) {include ('addEditContacts.php'); break;}else{}
+			if(!ctype_digit(trim($_POST['bscprefix'])))  {include ('addEditContacts.php'); break;}else{}
+			if(!ctype_digit(trim($_POST['bsclocation'])))  {include ('addEditContacts.php'); break;}else{}
+			if(!ctype_digit(trim($_POST['bscext']))) {include ('addEditContacts.php'); break;}else{}
+			$zip=htmlentities($this->bsczip);
+
+			if($zip=='0'){$zip=$_SESSION['bsczip'];}else{}
+			$zip2=htmlentities($this->bsczip4);
+
+			if($zip2=='0'){$zip2=$_SESSION['bsczip4'];}else{}
+			$phone=$this->phonebsc;
+			$phone = substr($phone,0,10);
+			$phonetype = $_POST['bscphonetype'];
+			$this->codecatcher=$CNID;
+			$relationship=$this->bscrelationship;
+			$email=$this->bscemail;
+			$state=$this->bscstate;
+			if($zip==''){$zip='0';}else{}
+			if($zip2==''){$zip2='0';}else{}
+				
+
+
+			$stmt = odbc_prepare( $conn, $sql )	or die("<br>HCPP Prepare failed! ". odbc_stmt_errormsg());
+
+			if($state ==''){$state = $_SESSION['bscstate'];}else{$state=$_POST['bscstate'];}
+			if($phone=='')$phone=0;
+			if($phonetype==101)$phonetype='Home';else if($phonetype==102)$phonetype='Work';else if($phonetype==103)$phonetype='Cell';
+			if($_SESSION['bscemail']==''){$email=$_POST['bscemail'];}else{}
+			if($_SESSION['bscrelationship']==''){$relationship=$_POST['bscrelationship'];}else{}
+			$ext=$_POST['bscext'];
+$CNID12=strval($CNID);
+$CNID=strval($CNID12);
+$rec=intval($CNREC12);
+$CNREC12=$rec;
+$zip2=strval($zip2);
+//echo 'CNID'.$CNID12;
+//echo 'rec'.$rec;
+			$this->saveeditaddcontactarray=array(	$CNID12,
+			$CNREC12,			
+			$name,
+			$address1,
+			$address2,
+			$city,
+			$state,
+			$zip,
+			$zip2,
+			$phone,
+			$ext,
+			$phonetype,
+			$email,
+			$relationship,
+			$mid1,
+			$nmcd1,
+			$CNID,
+			$rec);
+		
+			
+			if(odbc_execute($stmt,$this->saveeditaddcontactarray))
+			{
+				While($row = odbc_fetch_array( $stmt ));{
+					unset($_SESSION['bscname']);
+					unset($_SESSION['bscaddress1']);
+					unset($_SESSION['bscaddress2']);
+					unset($_SESSION['bsccity'] );
+					unset($_SESSION['bscstate']);
+					unset($_SESSION['bscareacode']);
+					unset($_SESSION['bscprefix']);
+					unset($_SESSION['bsclocation']);
+					unset($_SESSION['bscphonetype']);
+					unset($_SESSION['bsczip4']);
+					unset($_SESSION['bsczip']);
+					unset($_SESSION['id']);
+					unset($_SESSION['basicsummarycontactid']);
+					unset($_SESSION['bscemail']);
+					unset($_SESSION['bscrelationship']);
+				}
+			}
+			odbc_close ( $conn );
+
+	}
+	
+	
+function saveaddedit(){
+		unset($_SESSION['basicsummarycontactid1']);
+		unset($_SESSION['bscname1']);
+		unset($_SESSION['bscaddress1']);
+		unset($_SESSION['bscaddressline21']);
+		unset($_SESSION['bsccity1']);
+		unset($_SESSION['bscstate1']);
+		unset($_SESSION['bsczipcode1']);
+		unset($_SESSION['bsczipcode41']);
+		unset($_SESSION['bscareacode1']);
+		unset($_SESSION['bscprefix1']);
+		unset($_SESSION['bsclocation1']);
+		unset($_SESSION['bscext1']);
+		unset($_SESSION['bscphonetype1']);
+		unset($_SESSION['bscemail1']);
+		unset($_SESSION['bscrelationship1']);
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$N=1;
+		$sql = ("INSERT INTO PHRCON (CNMID,CNNMCD,CNID,CNREC#,CNNAME,CNADDR1,CNADDR2,CNCITY,CNSTATE,CNZIP1,CNZIP2,CNPHN1,CNPHN2,CNPHN1TYPE,CNEMAIL,CNREL) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ");
+		//$sql = ("INSERT INTO PHRCON (CNMID,CNNMCD,CNID,CNREC#,CNNAME,CNADDR1,CNADDR2,CNCITY,CNSTATE,CNZIP1,CNZIP2,CNPHN1,CNPHN1TYPE,CNREL) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ");
+		$mid1 = $_SESSION['nmid'];
+		$nmcd1 = $_SESSION['searchNmc'];
+		if($CNID==''){$CNID=$_POST['basicsummarycontactid'];}else{
+			$CNID=$this->basicsummarycontactidcontacttype;}
+
+if($CNID=='Emergency Contact')$CNID=94;elseif($CNID=='Primary Physician')$CNID=95;elseif($CNID=='Other')$CNID=96;
+
+$CNID2=$CNID;
+$call = new PHRContacts();$call->getsave();
+$call->returngetsave();
+$dataset=$call->returngetsave();
+
+			//$record = $N++;
+		//	foreach($this->resultssave as $key=>$value){
+				//if($CNID=='Emergency Contact')$CNID=94;elseif($CNID=='Primary Physician')$CNID=95;elseif($CNID=='Other')$CNID=96;
+
+			//	$cnid=$value['CNID'];
+//echo ' lc cnid'.$cnid;
+			//	if($cnid==$CNID){
+			///		$this->bscrec =$N++;
+
+			//	}
+
+
+			//}
+			if($this->bscrec == Null){
+				$rec=1;}else{	$rec =$this->bscrec;}
+					
+				$name=$this->bscname;
+				$address1=$this->bscaddress;
+				$address2=$this->bscaddress2;
+				$city=$this->bsccity;
+				$state=$this->bscstate;
+				if(trim($_POST['bscname'])==''){
+
+					$_SESSION['bscname'] = A;
+
+				
+				}else{}
+				if(!ctype_digit(trim($_POST['bsczipcode']))){
+					$_SESSION['bsczip'] = A;
+				
+				}else{}
+				if(!ctype_digit(trim($_POST['bsczipcode4']))){
+					$_SESSION['bsczip4'] = A;					
+					
+				}else{}
+				if(!ctype_digit(trim($_POST['bscareacode']))){					
+					$_SESSION['bscareacode']='A';
+				}else{}
+				if(!ctype_digit(trim($_POST['bscprefix']))){					
+					$_SESSION['bscprefix']='B';		
+				}else{}
+				if(!ctype_digit(trim($_POST['bsclocation']))){
+					$_SESSION['bsclocation']='C';	
+				}else{}
+				if(trim($_POST['bscext'])==null or trim($_POST['bscext'])=='0'){$_POST['bscext']=0;}
+				if(!ctype_digit(trim($_POST['bscext']))){				
+					$_SESSION['bscext']='D';
+					}else{}
+			if($CNID==''){$CNID=$_POST['basicsummarycontactid'];}else{
+					$CNID=$_SESSION['basicsummarycontactid'];}
+					if(trim($_POST['bscname'])==''){include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bsczipcode']))){include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bsczipcode4']))){include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bscareacode']))) {include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bscprefix']))) {include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bsclocation']))) {include ('addEdit1.php'); break;}else{}
+					if(!ctype_digit(trim($_POST['bscext']))){include ('addEdit1.php'); break;}else{}
+					$zip=htmlentities($this->bsczip);
+					$zip2=htmlentities($this->bsczip4);
+					$phone=$this->phonebsc;
+					$phonetype=$this->bscphonetype;
+					$this->codecatcher=$CNID;
+					$relationship=substr($this->bscrelationship,0,30);
+					$email=substr($this->bscemail,0,30);
+					$state=$this->bscstate;
+					$CNID=$_SESSION['basicsummarycontactid'];
+					$ext=$_POST['bscext'];
+						
+					if($CNID==''){$CNID=$_POST['basicsummarycontactid'];}else{
+						$CNID=$this->basicsummarycontactidcontacttype;}
+
+
+						$stmt = odbc_prepare( $conn, $sql )	or die("<br>HCPP Prepare failed! ". odbc_stmt_errormsg());
+						if($CNID==''){$CNID=$_SESSION['basicsummarycontactid'];}else{
+							$CNID=$_POST['basicsummarycontactid'];}
+
+							if($state ==''){$state = $this->bscstate;}else{$state=$_POST['bscstate'];}
+							if($phone=='')$phone=0;
+							if($phonetype==101)$phonetype='Home';elseif($phonetype==102)$phonetype='Work';elseif($phonetype==103)$phonetype='Cell';
+							if($email==''){$email=$email;}else{$email=$this->bscemail;}
+							if($relationship==''){$relationship=$relationship;}else{$relationship=$this->bscrelationship;}
+							$phone = substr($phone,0,10);
+							$CNID=$CNID5;
+							
+						
+									$CNID=$CNID2;
+							
+							$this->addcontactarray=array(	$mid1,
+							$nmcd1,
+							$CNID,
+							$rec,
+							$name,
+							$address1,
+							$address2,
+							$city,
+							$state,
+							$zip,
+							$zip2,
+							$phone,
+							$ext,
+							$phonetype,
+							$email,
+							$relationship);
+
+
+
+
+
+							if(odbc_execute($stmt,$this->addcontactarray))
+							{
+								While($row = odbc_fetch_array( $stmt ));{
+									unset($_SESSION['bscname']);
+									unset($_SESSION['bscaddress1']);
+									unset($_SESSION['bscaddress2']);
+									unset($_SESSION['bsccity'] );
+									unset($_SESSION['bscstate']);
+									unset($_SESSION['bscareacode']);
+									unset($_SESSION['bscprefix']);
+									unset($_SESSION['bsclocation']);
+									unset($_SESSION['bscext']);
+									unset($_SESSION['bscphonetype']);
+									unset($_SESSION['bsczip4']);
+									unset($_SESSION['bsczip']);
+									unset($_SESSION['id']);
+									unset($_SESSION['basicsummarycontactid']);
+									unset($_SESSION['bscemail']);
+									unset($_SESSION['bscrelationship']);
+								}
+								$affected = odbc_num_rows($stmt );
+								if($CNID==94)$CNID5='Emergency Contact';elseif($CNID==95)$CNID5='Primary Physician';elseif($CNID==96)$CNID5='Other';
+								if($affected> 0)
+							{ ?><b><font color="#00254A"  size="4"><?php echo $CNID5?> add successful!</font></b><?;}
+else
+{?><b><font color="#00254A"  size="4">Record Not Added</font></b><?;}
+							}
+							odbc_close ( $conn );
+	
+}
+	public function deleteaddcontacts()
+	{
+
+		//modify
+		$id=$_POST['deleterecordyes1'];
+
+		if(strlen($id)==4){
+			$CNID=substr($id,0,2);
+			$CNREC =substr($id,2,2);}else {$CNID=substr($id,0,2);
+			$CNREC =substr($id,2,1);}
+
+
+			
+			$conn = odbc_connect (SYSTEM, USER, PASS )
+			or die("Connection failed! ". odbc_conn_errormsg());
+			$sql =("DELETE FROM PHRCON WHERE CNMID = ? AND CNNMCD = ? AND CNID = ? AND CNREC# = ?");
+			$mid1 = $_SESSION['nmid'];
+			$nmcd1 =$_SESSION['searchNmc'];
+			$CNID =trim($CNID);
+			$CNREC=trim($CNREC);
+
+			$stmt = odbc_prepare( $conn, $sql )	or die("<br>Prepare failed! ". odbc_stmt_errormsg());
+
+
+
+			if(odbc_execute($stmt,array($mid1,$nmcd1,$CNID,$CNREC)))
+			{
+				//}
+				$row = odbc_fetch_array( $stmt );
+			}
+			odbc_close ( $conn );
+
+	}
+	public function get2()
+	{
+		$conn = odbc_connect (SYSTEM, USER, PASS )
+		or die("Connection failed! ". odbc_conn_errormsg());
+		$sql = ("SELECT * FROM PHRCON WHERE CNMID = ? AND CNNMCD=?");
+		$mid =$_SESSION['nmid'];
+		$ncd = $_SESSION['searchNmc'];
+		$stmt = odbc_prepare( $conn, $sql )	or die("<br>User MID Prepare failed! ". odbc_stmt_errormsg());
+
+		if (odbc_execute ( $stmt,array($mid,$ncd) ))
+		{
+			while ( $row = odbc_fetch_array ( $stmt ) )
+			{
+				if($row['CNID']>=90){$this->results2[] = $row;}
+			}
+		}
+		odbc_close ( $conn );
+	}
+	public function revise(){
+		$id=$_POST['deleterecordyes1'];
+		$lid=strlen($id);
+
+		if($lid==4){
+			$subtype=substr($id,2,2);
+			$type=substr($id,0,2);}else{$subtype=substr($id,2,1);
+			$type=substr($id,0,2);}
+
+			
+			$conn = odbc_connect (SYSTEM, USER, PASS )
+			or die("Connection failed! ". odbc_conn_errormsg());
+			$N=1;
+			foreach($this->results2 as $key=>$value){
+				$id2 = $value['CNID'];
+
+				if($type==$id2){$record1=$N++;
+				$sql = "UPDATE PHRCON SET  CNREC#=?  WHERE CNMID = ? AND CNNMCD=? AND CNID=? AND CNREC#=?";
+				$mid1 = $_SESSION['nmid'];
+				$nmcd1 = $_SESSION['searchNmc'];
+				$MDTYPE=$id2;
+
+				$record = $value['CNREC#'];
+				$stmt = odbc_prepare( $conn, $sql )	or die("<br>Prepare failed! ". odbc_stmt_errormsg());
+
+
+
+				odbc_execute ( $stmt,array($record1,$mid1,$nmcd1,$MDTYPE,$record) );}}
+				$affected = odbc_num_rows($stmt );
+
+				odbc_close ( $conn );
+
+
+	}
+
+
+	
+	public function returngetcoreinfo(){
+		return $this->_coreresults;
+	}
+	
+	public function returngetsave(){
+		return $this->resultssave;	
+	}
+	public function returngetsave1(){
+		return $this->resultssave1;
+	}
+public function returngetedit(){
+		return 	$this->_results1;
+	}
+public function returngeteditaddedit(){
+		return 	$this->_resultseditaddedit;
+	}
+}
+
+?>
